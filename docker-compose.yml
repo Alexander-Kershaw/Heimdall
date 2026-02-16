@@ -1,0 +1,50 @@
+services:
+  midgard:
+    image: postgres:16
+    container_name: midgard
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - midgard_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  superset:
+    image: apache/superset:4.0.2
+    container_name: superset
+    depends_on:
+      midgard:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+    ports:
+      - "8088:8088"
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./superset/init:/docker-init:ro
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        bash /docker-init/01_init_superset.sh && \
+        gunicorn \
+          --bind 0.0.0.0:8088 \
+          --workers 2 \
+          --threads 8 \
+          --timeout 120 \
+          "superset.app:create_app()"
+
+volumes:
+  midgard_data:
+  superset_home:
