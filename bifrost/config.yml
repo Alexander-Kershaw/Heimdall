@@ -1,0 +1,31 @@
+seed: 42
+
+time_window_days: 120
+start_date: "2025-10-01"
+
+teams:
+  - name: AEGIR
+    status_palette: ["To Do", "In Progress", "In Review", "Done", "Blocked", "QA"]
+  - name: FREYA
+    status_palette: ["Backlog", "Doing", "Review", "Shipped", "Impeded"]
+  - name: TYR
+    status_palette: ["Ready", "Dev", "Test", "Complete", "Blocked"]
+
+projects:
+  - VALHALLA
+  - MIDGARD-OPS
+  - BIFROST-LABS
+
+n_issues: 1200
+
+mess:
+  missing_assignee_rate: 0.18
+  missing_estimate_rate: 0.35
+  reopen_rate: 0.10
+  duplicate_rate: 0.03
+  late_blocker_log_rate: 0.12
+  done_without_in_progress_rate: 0.06
+  mid_sprint_add_rate: 0.20
+  status_drift_rate: 0.25
+
+

@@ -15,4 +15,5 @@ logs:
 reset:
 	docker compose down -v
 
-
+bifrost:
+	python -m bifrost.generate
