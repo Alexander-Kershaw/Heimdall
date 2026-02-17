@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: stg_issues
+    columns:
+      - name: issue_id
+        tests: [not_null, unique]
+      - name: issue_key
+        tests: [not_null]
+      - name: team
+        tests: [not_null]
+
+  - name: stg_transitions
+    columns:
+      - name: transition_id
+        tests: [not_null, unique]
+      - name: issue_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_issues')
+              field: issue_id
+      - name: canonical_status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['todo','in_progress','review','blocked','done']
+
+  - name: stg_sprints
+    columns:
+      - name: sprint_id
+        tests: [not_null, unique]
+
+  - name: stg_issue_sprint
+    columns:
+      - name: issue_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_issues')
+              field: issue_id
+      - name: sprint_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_sprints')
+              field: sprint_id
+
+  - name: stg_blockers
+    columns:
+      - name: issue_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_issues')
+              field: issue_id

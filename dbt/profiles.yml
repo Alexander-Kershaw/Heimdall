@@ -1,0 +1,15 @@
+heimdall:
+  target: dev
+  outputs:
+
+    dev:
+      type: postgres
+      host: localhost
+      user: midgard
+      password: midgard_password
+      port: 5433
+      dbname: midgard
+      schema: public
+      threads: 4
+
+
