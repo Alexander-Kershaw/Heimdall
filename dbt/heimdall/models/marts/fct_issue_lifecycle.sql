@@ -29,15 +29,46 @@ first_in_progress as (
 
 ),
 
-blocked_time as (
+base as (
 
     select
-        issue_id,
+        i.issue_id,
+        i.issue_key,
+        i.project_key,
+        i.team,
+        i.created_at,
+        fi.first_in_progress_at,
+        d.done_at
+    from {{ ref('stg_issues') }} i
+    left join last_done d using(issue_id)
+    left join first_in_progress fi using(issue_id)
+
+),
+
+blocked_overlap as (
+
+    select
+        b.issue_id,
+
         sum(
-            extract(epoch from coalesce(blocked_end, now()) - blocked_start)
-        ) / 3600 as blocked_hours
-    from {{ ref('stg_blockers') }}
-    group by issue_id
+            extract(epoch from
+                greatest(
+                    interval '0 seconds',
+                    least(coalesce(b.blocked_end, base.done_at), base.done_at)
+                    - greatest(b.blocked_start, base.first_in_progress_at)
+                )
+            )
+        ) / 3600.0 as blocked_hours
+
+    from {{ ref('stg_blockers') }} b
+    join base on base.issue_id = b.issue_id
+
+    where base.first_in_progress_at is not null
+      and base.done_at is not null
+      and b.blocked_start < base.done_at
+      and coalesce(b.blocked_end, base.done_at) > base.first_in_progress_at
+
+    group by b.issue_id
 
 ),
 
@@ -60,26 +91,20 @@ reopens as (
 )
 
 select
+    base.issue_id,
+    base.issue_key,
+    base.project_key,
+    base.team,
+    base.created_at,
+    base.first_in_progress_at,
+    base.done_at,
 
-    i.issue_id,
-    i.issue_key,
-    i.project_key,
-    i.team,
-    i.created_at,
+    extract(epoch from base.done_at - base.first_in_progress_at) / 3600.0 as cycle_time_hours,
 
-    fi.first_in_progress_at,
-
-    d.done_at,
-
-    extract(epoch from d.done_at - fi.first_in_progress_at) / 3600
-        as cycle_time_hours,
-
-    coalesce(bt.blocked_hours, 0) as blocked_hours,
+    coalesce(bo.blocked_hours, 0) as blocked_hours,
 
     coalesce(r.reopen_count, 0) as reopen_count
 
-from {{ ref('stg_issues') }} i
-left join last_done d using(issue_id)
-left join first_in_progress fi using(issue_id)
-left join blocked_time bt using(issue_id)
+from base
+left join blocked_overlap bo using(issue_id)
 left join reopens r using(issue_id)
